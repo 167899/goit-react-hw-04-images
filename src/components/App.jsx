@@ -1,4 +1,3 @@
-import { Component } from 'react';
 import axios from 'axios';
 import styles from './App.module.css';
 
@@ -8,131 +7,113 @@ import { Searchbar } from './Searchbar/Searchbar';
 import { ImageGallery } from './ImageGallery/ImageGallery';
 import { Button } from './Button/Button';
 import { Modal } from './Modal/Modal';
+import { useState } from 'react';
+import { useEffect } from 'react';
 
-export class App extends Component {
-  state = {
-    name: '',
-    query: '',
-    images: [],
-    total: null,
-    loading: false,
-    perPage: 12,
-    page: 1,
-    showModal: false,
-    largeImageURL: null,
-  };
+export const App = () => {
+  const [name, setName] = useState('');
+  const [query, setQuery] = useState('');
+  const [images, setImages] = useState([]);
+  const [total, setTotal] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(1);
+  const [showModal, setShowModal] = useState(false);
+  const [largeImageURL, setLargeImageURL] = useState(null);
+  const perPage = 12;
 
-  componentDidUpdate(prevProps, prevState) {
-    if (
-      prevState.page !== this.state.page ||
-      (prevState.query !== this.state.query && this.state.query !== '')
-    ) {
-      this.fetch();
+  useEffect(() => {
+    if (query === '') {
+      return;
     }
-  }
+    fetch();
+  }, [page, query]);
 
-  async fetch() {
+  const fetch = () => {
     const key = '27831105-5e5b5e1ddfe0fd39cdbde4893';
     const URL = `https://pixabay.com/api/`;
-    const perPage = this.state.perPage;
-    const page = this.state.page;
+    const per_page = perPage;
+    const page_param = page;
     const option = {
       params: {
         key: `${key}`,
-        q: `${this.state.query}`,
+        q: `${query}`,
         image_type: 'photo',
         orientation: 'horizontal',
-        page: `${page}`,
-        per_page: `${perPage}`,
+        page: `${page_param}`,
+        per_page: `${per_page}`,
       },
     };
-    this.setState({ loading: true });
-    await axios.get(URL, option).then(images =>
-      this.setState(prevState => ({
-        images: [...prevState.images, ...images.data.hits],
-        total: images.data.total,
-        loading: false,
-      }))
-    );
-  }
-
-  hendleChange = e => {
-    const { value } = e.currentTarget;
-    this.setState({ name: value });
+    setLoading(true);
+    axios.get(URL, option).then(newImages => {
+      setImages([...images, ...newImages.data.hits]);
+      setTotal(newImages.data.total);
+      setLoading(false);
+    });
   };
 
-  hendleSubmit = e => {
+  const hendleChange = e => {
+    const { value } = e.currentTarget;
+    setName(value);
+  };
+
+  const hendleSubmit = e => {
     e.preventDefault();
 
-    if (this.state.query !== this.state.name && this.state.name !== '') {
-      this.setState({
-        query: this.state.name,
-        images: [],
-        page: 1,
-      });
+    if (query !== name && name !== '') {
+      setQuery(name);
+      setImages([]);
+      setPage(1);
     }
   };
 
-  hendleLoade = e => {
-    this.setState(prevState => ({
-      page: prevState.page + 1,
-    }));
+  const hendleLoade = e => {
+    setPage(page + 1);
   };
 
-  onClickModal = () => {
-    this.setState(({ showModal }) => ({ showModal: !showModal }));
+  const onClickModal = () => {
+    setShowModal(!showModal);
   };
 
-  toggleModal = e => {
-    this.onClickModal();
+  const toggleModal = e => {
+    onClickModal();
     const ID = e.currentTarget.id;
-    const img = this.state.images.find(e => e.id === Number(ID));
-    this.setState({ largeImageURL: img.largeImageURL });
+    const img = images.find(e => e.id === Number(ID));
+
+    setLargeImageURL(img.largeImageURL);
   };
 
-  render() {
-    return (
-      <div className={styles.app}>
-        <Searchbar
-          onSubmit={this.hendleSubmit}
-          name={this.state.name}
-          onChange={this.hendleChange}
-        />
+  return (
+    <div className={styles.app}>
+      <Searchbar onSubmit={hendleSubmit} name={name} onChange={hendleChange} />
 
-        {this.state.images.length !== 0 && (
-          <>
-            <ImageGallery
-              images={this.state.images}
-              toggleModal={this.toggleModal}
+      {images.length !== 0 && (
+        <>
+          <ImageGallery images={images} toggleModal={toggleModal} />
+          {loading ? (
+            <ThreeDots
+              height="80"
+              s
+              width="80"
+              radius="9"
+              color="#4fa94d"
+              ariaLabel="three-dots-loading"
+              wrapperStyle={{
+                display: 'flex',
+                justifyContent: 'center',
+              }}
+              wrapperClassName=""
+              visible={true}
             />
-            {this.state.loading ? (
-              <ThreeDots
-                height="80"
-                s
-                width="80"
-                radius="9"
-                color="#4fa94d"
-                ariaLabel="three-dots-loading"
-                wrapperStyle={{
-                  display: 'flex',
-                  justifyContent: 'center',
-                }}
-                wrapperClassName=""
-                visible={true}
-              />
-            ) : (
-              this.state.images.length < this.state.total && (
-                <Button onClick={this.hendleLoade} />
-              )
-            )}
-          </>
-        )}
-        {this.state.showModal && (
-          <Modal onClick={this.onClickModal}>
-            <img src={this.state.largeImageURL} alt="" />
-          </Modal>
-        )}
-      </div>
-    );
-  }
-}
+          ) : (
+            images.length < total && <Button onClick={hendleLoade} />
+          )}
+        </>
+      )}
+      {showModal && (
+        <Modal onClick={onClickModal}>
+          <img src={largeImageURL} alt="" />
+        </Modal>
+      )}
+    </div>
+  );
+};

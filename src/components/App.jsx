@@ -1,5 +1,5 @@
-import axios from 'axios';
 import styles from './App.module.css';
+import { fetch } from '../services/api';
 
 import { ThreeDots } from 'react-loader-spinner';
 
@@ -19,37 +19,18 @@ export const App = () => {
   const [page, setPage] = useState(1);
   const [showModal, setShowModal] = useState(false);
   const [largeImageURL, setLargeImageURL] = useState(null);
-  const perPage = 12;
 
   useEffect(() => {
     if (query === '') {
       return;
     }
-    fetch();
-  }, [page, query]);
-
-  const fetch = () => {
-    const key = '27831105-5e5b5e1ddfe0fd39cdbde4893';
-    const URL = `https://pixabay.com/api/`;
-    const per_page = perPage;
-    const page_param = page;
-    const option = {
-      params: {
-        key: `${key}`,
-        q: `${query}`,
-        image_type: 'photo',
-        orientation: 'horizontal',
-        page: `${page_param}`,
-        per_page: `${per_page}`,
-      },
-    };
     setLoading(true);
-    axios.get(URL, option).then(newImages => {
-      setImages([...images, ...newImages.data.hits]);
+    fetch(page, query).then(newImages => {
+      setImages(prevItems => [...prevItems, ...newImages.data.hits]);
       setTotal(newImages.data.total);
       setLoading(false);
     });
-  };
+  }, [page, query]);
 
   const hendleChange = e => {
     const { value } = e.currentTarget;
